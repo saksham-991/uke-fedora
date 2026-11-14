@@ -29,7 +29,7 @@ This port is **work in progress**. Differences are: Fedora 44, `/userdata` insta
 | Display | 🟡 Partial | Native TM display works; a brief grey screen appears during boot. CSOT is untested on this port. |
 | Refresh rate |  🟢 Working  | Manual Refresh rate switching works and is reliable, (KDE verified), VRR is disabled. |
 | Touchscreen |  🟢 Working | Works,10 Point MultiTouch is working. |
-| Graphics (GPU) | 🟡 Partial | OpenGL works, Vulkan is experimental. |
+| Graphics (GPU) | 🟡 Working, needs more testing | OpenGL works (~10K Glmark2), Vulkan is experimental (~7K Vkmark). |
 | CPU and storage | 🟢 Working | All CPU cores are available, internal storage works. |
 | Wi-Fi | 🟢 Working | Connects to networks and supports normal data transfers. |
 | Bluetooth |  🟢 Working  | Bluetooth devices work, Tested Keyboard, Mouse and headphones. |
