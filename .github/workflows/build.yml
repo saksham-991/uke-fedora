@@ -95,6 +95,9 @@ jobs:
             sudo install -Dm644 "$here/../configs/nanosic/MCU_Upgrade.bin" "$output/root/usr/lib/firmware/nanosic/MCU_Upgrade.bin"\
             sudo install -Dm644 "$here/../configs/audio/asound.state" "$output/root/var/lib/alsa/asound.state"\
             sudo install -Dm644 "$here/../configs/wireplumber/85-uke-speaker-priority.conf" "$output/root/usr/share/wireplumber/wireplumber.conf.d/85-uke-speaker-priority.conf"' uke-fedora-builder/build-rootfs.sh
+          # The sed above edits a pinned kernel build input (native.config), so the
+          # source digests must be refreshed after patching or check-pins fails.
+          bash senemos-uke-kernel/tools/refresh-source-pins.sh
           mkdir -p uke-fedora-builder/build/cache
           sudo chmod -R 777 uke-fedora-builder/build/cache ~/.cache 2>/dev/null || true
 
