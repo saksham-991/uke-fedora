@@ -109,6 +109,8 @@ def main():
         "libavcodec-freeworld-8.0.1-6.fc44.aarch64.rpm\n"
         "            chroot \"$root\" flatpak remote-add --system --if-not-exists flathub "
         "https://flathub.org/repo/flathub.flatpakrepo || die 'Failed to add Flathub remote'\n"
+        "            install -Dm644 \"$here/../configs/vlc/vlcrc\" \"$root/etc/skel/.config/vlc/vlcrc\"\n"
+        "            install -Dm644 \"$here/../configs/vlc/vlcrc\" \"$root/etc/vlc/vlcrc\"\n"
         "            if [[ $profile != tty ]]; then\n",
         writes)
 
