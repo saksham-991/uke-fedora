@@ -78,6 +78,14 @@ def main():
                  '    install -Dm644 "$here/configs/images/uke-copr.repo"',
                  '    sudo install -Dm644 "$here/configs/images/uke-copr.repo"', writes)
 
+    # Flatpak is required by the Flatpak VA-API override and desktop apps.
+    replace_once(
+        f"{builder}/build-rootfs.sh",
+        "common=(NetworkManager-wifi bluez dbus-daemon mesa-dri-drivers pipewire wireplumber upower",
+        "common=(NetworkManager-wifi bluez dbus-daemon mesa-dri-drivers pipewire wireplumber "
+        "flatpak flatpak-session-helper upower",
+        writes)
+
     # Touch firmware must also exist at the path the kernel requests.
     replace_once(
         f"{builder}/build-rootfs.sh",
