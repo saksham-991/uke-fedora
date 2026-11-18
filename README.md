@@ -10,7 +10,7 @@ This port is **work in progress**. Differences are: Fedora 44, `/userdata` insta
 
 ## Demo
 
-https://github.com/user-attachments/assets/REPLACE_ME
+https://github.com/user-attachments/assets/aaa5c2a5-fe86-4cba-84c5-56b9adcc9963
 
 10-second on-device capture from the Xiaomi Pad 7 running KDE Plasma on the Fedora 44 Uke image.
 
