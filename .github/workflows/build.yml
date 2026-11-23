@@ -78,6 +78,10 @@ jobs:
       - name: Apply CI overlay to pinned components
         run: |
           mkdir -p uke-fedora-builder/build/cache
+          if [[ -f uke-linux-hardware-support/uke-platform-runtime/src/focus-pen/Makefile ]] &&
+             grep -Fq '"uke-focus-pen-frames"' senemos-uke-kernel/src/input/nt36532-uke-spi.c; then
+            git -C uke-fedora-builder apply ../maint/focus-pen-builder.patch
+          fi
           python3 maint/prepare-ci-tree.py
           python3 maint/prepare-ci-fallback.py
           python3 maint/prepare-ci-kvm.py
