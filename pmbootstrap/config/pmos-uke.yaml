@@ -1,0 +1,89 @@
+# pmbootstrap configuration for Xiaomi Pad 7 (uke)
+# Used by CI to configure pmbootstrap non-interactively
+
+# Device
+device="xiaomi-uke"
+
+# Architecture
+arch="aarch64"
+
+# Mirror
+mirror="http://dl-cdn.alpinelinux.org/alpine/edge"
+
+# Packages to install in rootfs (KDE Plasma Mobile + basics)
+packages="
+	alsa-utils
+	bluez
+	bluez-tools
+	chrony
+	curl
+	device-xiaomi-uke
+	dhcpcd
+	dmesg
+	e2fsprogs
+	firmware-qcom-sm7675
+	font-noto
+	font-noto-cjk
+	font-noto-emoji
+	iwd
+	kbd-bkeymaps
+	linux-xiaomi-uke
+	lvm2
+	modemmanager
+	networkmanager
+	networkmanager-wifi
+	openrc
+	pciutils
+	pipewire
+	pipewire-alsa
+	pipewire-pulse
+	pipewire-spa-plugins
+	pipewire-tools
+	polkit-elogind
+	sddm
+	sudo
+	udo
+	usbutils
+	vim
+	wget
+	wireless-regdb
+	wpa_supplicant
+	pipewire-session-manager
+	"
+
+# UI: Plasma Mobile (KDE)
+ui="plasma-mobile"
+
+# Username/password
+username="user"
+password="147147"
+
+# Hostname
+hostname="uke"
+
+# Timezone
+timezone="UTC"
+
+# SSH
+sshd="yes"
+
+# Initramfs
+initramfs_compression="lz4"
+
+# Bootloader (none for fastboot)
+bootloader=""
+
+# Image format
+image_format="android"
+
+# Build options
+make_jobs="$(nproc)"
+ccache="yes"
+compiler="clang"
+linker="lld"
+
+# Custom aports (our device + kernel packages)
+aports="${PWD}/pmbootstrap/aports"
+
+# Cache
+cache_dir="${PWD}/.cache/pmbootstrap"

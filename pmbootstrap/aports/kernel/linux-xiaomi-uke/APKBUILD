@@ -1,0 +1,99 @@
+# Maintainer: saksham-991 <your@email.com>
+pkgname=linux-xiaomi-uke
+pkgver=6.12.0
+pkgrel=0
+pkgdesc="Mainline kernel for Xiaomi Pad 7 (uke) with Freedreno GPU, touch, WiFi, audio"
+url="https://github.com/saksham-991/senemos-uke-kernel-mainline"
+arch="aarch64"
+license="GPL-2.0-only"
+depends="
+	firmware-qcom-sm7675
+	"
+makedepends="
+	clang
+	lld
+	llvm
+	bc
+	kmod
+	bison
+	flex
+	dtc
+	"
+options="!check"
+source="
+	config-xiaomi-uke
+	linux-xiaomi-uke.install
+	"
+# Kernel source is fetched from git in prepare()
+_giturl="https://github.com/saksham-991/senemos-uke-kernel-mainline"
+_gitbranch="main"
+_commit="8555d108d82d16b6b1565456d7e2733fe1bfe255"
+
+prepare() {
+	default_prepare
+
+	# Clone kernel source if not present
+	if [ ! -d "$srcdir"/linux ]; then
+		msg "Cloning kernel source..."
+		git clone --depth 1 --branch "$_gitbranch" "$_giturl" "$srcdir"/linux
+		cd "$srcdir"/linux
+		git checkout "$_commit"
+	else
+		cd "$srcdir"/linux
+	fi
+
+	# Apply config
+	cp "$srcdir"/config-xiaomi-uke .config
+	make olddefconfig
+}
+
+build() {
+	cd "$srcdir"/linux
+
+	export KBUILD_BUILD_USER="pmos"
+	export KBUILD_BUILD_HOST="github-actions"
+	export KBUILD_BUILD_TIMESTAMP="$(date -u +'%Y-%m-%d %H:%M:%S' --date=@${SOURCE_DATE_EPOCH:-$(date +%s)})"
+
+	# Use clang + lld (your uke-fedora uses this)
+	make -j$(nproc) \
+		CC=clang \
+		LD=ld.lld \
+		AR=llvm-ar \
+		NM=llvm-nm \
+		OBJCOPY=llvm-objcopy \
+		OBJDUMP=llvm-objdump \
+		STRIP=llvm-strip \
+		Image.gz dtbs modules
+}
+
+package() {
+	cd "$srcdir"/linux
+
+	# Install kernel image
+	install -Dm644 arch/arm64/boot/Image.gz \
+		"$pkgdir"/boot/vmlinuz-linux-xiaomi-uke
+
+	# Install DTBs
+	install -d "$pkgdir"/usr/lib/linux-xiaomi-uke/
+	for dtb in arch/arm64/boot/dts/qcom/sm7675-*.dtb; do
+		install -m644 "$dtb" "$pkgdir"/usr/lib/linux-xiaomi-uke/
+	done
+
+	# Install modules
+	make INSTALL_MOD_PATH="$pkgdir" INSTALL_MOD_STRIP=1 modules_install
+
+	# Remove build/source links
+	rm -f "$pkgdir"/lib/modules/*/build "$pkgdir"/lib/modules/*/source
+
+	# Generate module dependencies
+	depmod -b "$pkgdir" -F System.map "$pkgver"-xiaomi-uke
+}
+
+# Subpackage for kernel headers (needed for DKMS, etc.)
+headers() {
+	pkgdesc="Headers for linux-xiaomi-uke"
+	mkdir -p "$subpkgdir"/usr
+	cp -r "$pkgdir"/usr/include "$subpkgdir"/usr/ 2>/dev/null || true
+	cp -r "$pkgdir"/usr/lib/modules "$subpkgdir"/usr/ 2>/dev/null || true
+	rm -f "$subpkgdir"/usr/lib/modules/*/build "$subpkgdir"/usr/lib/modules/*/source
+}

@@ -1,0 +1,16 @@
+#!/bin/sh
+# post-install script for linux-xiaomi-uke
+
+# Update boot entries (not used for fastboot, but kept for consistency)
+if [ -x /usr/bin/kernel-install ]; then
+	kernel-install add "$KERNEL_VERSION" /boot/vmlinuz-linux-xiaomi-uke
+fi
+
+# Trigger initramfs regeneration
+if [ -x /sbin/update-initramfs ]; then
+	update-initramfs -u -k "$KERNEL_VERSION"
+elif [ -x /usr/sbin/mkinitfs ]; then
+	mkinitfs -c /etc/mkinitfs/mkinitfs.conf -k "$KERNEL_FLAVOR" -o /boot/initramfs-"$KERNEL_FLAVOR" "$KERNEL_FLAVOR"
+fi
+
+exit 0

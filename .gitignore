@@ -51,3 +51,7 @@ __pycache__/
 *.swp
 .vscode/
 .idea/
+
+# pmOS build
+pmbootstrap/aports/device/device-xiaomi-uke/firmware/
+.cache/pmbootstrap/

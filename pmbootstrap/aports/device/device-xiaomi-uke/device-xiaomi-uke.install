@@ -1,0 +1,14 @@
+#!/bin/sh
+# post-install script for device-xiaomi-uke
+
+# Trigger initramfs regeneration
+if [ -x /sbin/update-initramfs ]; then
+	update-initramfs -u -k all
+elif [ -x /usr/sbin/mkinitfs ]; then
+	mkinitfs -c /etc/mkinitfs/mkinitfs.conf -k "$KERNEL_FLAVOR" -o /boot/initramfs-"$KERNEL_FLAVOR" "$KERNEL_FLAVOR"
+fi
+
+# Update bootloader (if using grub/efi, not needed for fastboot)
+# This is a no-op for Android fastboot devices
+
+exit 0

@@ -1,0 +1,38 @@
+# Maintainer: saksham-991 <your@email.com>
+pkgname=device-xiaomi-uke
+pkgver=0.1
+pkgrel=0
+pkgdesc="Device package for Xiaomi Pad 7 / POCO Pad X1 (uke)"
+url="https://github.com/saksham-991/uke-fedora"
+arch="aarch64"
+license="MIT"
+depends="
+	linux-xiaomi-uke
+	firmware-qcom-sm7675
+	"
+makedepends="pmbootstrap"
+source="
+	deviceinfo
+	device-xiaomi-uke.install
+	"
+options="!check"
+deviceinfo_subpackages="$pkgname-firmware"
+
+package() {
+	# Install deviceinfo
+	install -Dm644 "$srcdir"/deviceinfo "$pkgdir"/etc/deviceinfo
+
+	# Install udev rules for touchscreen, sensors, etc.
+	install -Dm644 "$srcdir"/udev/*.rules "$pkgdir"/usr/lib/udev/rules.d/ 2>/dev/null || true
+
+	# Install firmware (copied from firmware/ directory by pmbootstrap)
+	install -Dm644 "$srcdir"/firmware/* "$pkgdir"/usr/lib/firmware/qcom/ 2>/dev/null || true
+}
+
+firmware() {
+	pkgdesc="Firmware for Xiaomi Pad 7 (uke)"
+	depends=""
+
+	mkdir -p "$subpkgdir"/usr/lib/firmware/qcom/
+	cp -r "$srcdir"/firmware/* "$subpkgdir"/usr/lib/firmware/qcom/ 2>/dev/null || true
+}

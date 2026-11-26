@@ -1,0 +1,59 @@
+# Device info for Xiaomi Pad 7 / POCO Pad X1 (uke)
+# Used by pmbootstrap to generate initramfs, flash images, etc.
+
+# Basic device identification
+deviceinfo_name="Xiaomi Pad 7 / POCO Pad X1"
+deviceinfo_codename="uke"
+deviceinfo_arch="aarch64"
+
+# Kernel
+deviceinfo_kernel="linux-xiaomi-uke"
+
+# Boot partition layout (from your uke-fedora work)
+deviceinfo_flash_method="fastboot"
+deviceinfo_partition_boot="/dev/block/by-name/boot_a"
+deviceinfo_partition_recovery="/dev/block/by-name/recovery"
+deviceinfo_partition_userdata="/dev/block/by-name/userdata"
+
+# Boot image format (Android v4 boot image, no ramdisk, DTB appended)
+deviceinfo_bootimg_format="android"
+deviceinfo_bootimg_header_version="4"
+deviceinfo_bootimg_pagesize="4096"
+deviceinfo_bootimg_base="0x00000000"
+deviceinfo_bootimg_kernel_offset="0x00008000"
+deviceinfo_bootimg_ramdisk_offset="0x01000000"
+deviceinfo_bootimg_tags_offset="0x01e00000"
+deviceinfo_bootimg_dtb_offset="0x01f00000"
+
+# Kernel command line (adapted from your uke-fedora boot args)
+deviceinfo_kernel_cmdline="console=ttyMSM0,115200n8 earlycon=msm_geni_serial,0x880000 root=/dev/block/by-name/userdata rw rootwait init=/sbin/init"
+
+# Display
+deviceinfo_screen_width="2136"
+deviceinfo_screen_height="3200"
+deviceinfo_screen_density="345"
+
+# Partitions (from your research)
+deviceinfo_partitions="
+	boot_a
+	boot_b
+	vendor_boot_a
+	vendor_boot_b
+	dtbo_a
+	dtbo_b
+	userdata
+	"
+
+# Flash offsets (for fastboot)
+deviceinfo_flash_offset_boot="0x0"
+deviceinfo_flash_offset_vendor_boot="0x0"
+
+# Recovery (not used, but required)
+deviceinfo_recovery_partition="recovery"
+
+# Initramfs
+deviceinfo_generate_initramfs="yes"
+deviceinfo_initramfs_compression="lz4"
+
+# Firmware
+deviceinfo_firmware="firmware-qcom-sm7675"
