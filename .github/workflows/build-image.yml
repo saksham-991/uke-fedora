@@ -1,0 +1,180 @@
+name: Build Uke Fedora image
+
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: Image profile
+        required: true
+        default: kde
+        type: choice
+        options:
+          - kde
+          - phosh-gnome
+          - plasma
+          - gnome
+          - tty
+      keep_alive_minutes:
+        description: Minutes to keep the Cloudflare download tunnel open after the build
+        required: true
+        default: "30"
+        type: string
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: uke-build-${{ github.ref }}-${{ inputs.profile || 'kde' }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 360
+    env:
+      PROFILE: ${{ inputs.profile || 'kde' }}
+      KEEP_ALIVE_MINUTES: ${{ inputs.keep_alive_minutes || '30' }}
+
+    steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+            /opt/hostedtoolcache/CodeQL /usr/local/share/boost 2>/dev/null || true
+          sudo apt-get clean
+          df -h /
+
+      - name: Checkout latest branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: false
+
+      - name: Remove legacy workflow files
+        run: |
+          find .github/workflows -maxdepth 1 -type f \( -name '*.yml' -o -name '*.yaml' \) \
+            ! -name 'build-image.yml' -print -delete
+
+      - name: Initialize required submodules
+        run: |
+          set -euo pipefail
+          git submodule update --init rootfs/device-helpers/hardware-support
+          git submodule update --init rootfs/device-helpers/hexagonrpc
+          git submodule status
+
+      - name: Download pinned build inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p inputs dist
+          gh release download inputs-latest --repo "$GITHUB_REPOSITORY" --dir inputs --clobber
+          ls -lh inputs
+          sha256sum inputs/*
+
+      - name: Build image in Fedora 45
+        run: |
+          set -euo pipefail
+          docker run --rm --privileged --network host \
+            -v "$PWD:/work" -w /work \
+            -e PROFILE \
+            fedora:45 bash -lc '
+              set -euo pipefail
+              dnf5 -y install \
+                git-core python3 dnf5 rpm systemd e2fsprogs libselinux util-linux \
+                coreutils findutils android-tools zip unzip curl ca-certificates
+              curl -fsSL "https://android.googlesource.com/platform/external/avb/+/refs/heads/main/avbtool.py?format=TEXT" \
+                | base64 -d > /usr/local/bin/avbtool
+              chmod 755 /usr/local/bin/avbtool
+              avbtool --help >/dev/null
+              command -v img2simg
+              python3 build/build.py \
+                --profile "$PROFILE" \
+                --senemos-rpm inputs/senemos-uke-linux-kernel-mainline-core-7.3.5-47.fc46.aarch64.rpm \
+                --stock-boot inputs/stock-boot.img \
+                --firmware-zip inputs/console-firmware-iris.zip
+              cd "build/out/$PROFILE"
+              sha256sum boot.img userdata.img > SHA256SUMS.verify
+              cd /work
+              rm -f "dist/uke-fedora-$PROFILE.zip"
+              (cd "build/out/$PROFILE" && zip -1 -r "/work/dist/uke-fedora-$PROFILE.zip" \
+                boot.img userdata.img manifest.json SHA256SUMS SHA256SUMS.verify)
+              chmod 644 "dist/uke-fedora-$PROFILE.zip"
+            '
+
+      - name: Verify zip
+        run: |
+          set -euo pipefail
+          ls -lh "dist/uke-fedora-$PROFILE.zip"
+          unzip -t "dist/uke-fedora-$PROFILE.zip"
+          unzip -p "dist/uke-fedora-$PROFILE.zip" SHA256SUMS
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: uke-fedora-${{ env.PROFILE }}-${{ github.run_id }}
+          path: dist/uke-fedora-${{ env.PROFILE }}.zip
+          compression-level: 0
+          retention-days: 14
+
+      - name: Publish release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag=latest-image
+          if ! gh release view "$tag" >/dev/null 2>&1; then
+            gh release create "$tag" --prerelease \
+              --title "Latest Uke Fedora image" \
+              --notes "Automated build of the latest branch."
+          fi
+          gh release upload "$tag" "dist/uke-fedora-$PROFILE.zip" --clobber
+
+      - name: Start Cloudflare download tunnel
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /usr/local/bin/cloudflared \
+            https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-arm64
+          chmod 755 /usr/local/bin/cloudflared
+          cd dist
+          python3 -m http.server 8080 --bind 127.0.0.1 >/tmp/http.log 2>&1 &
+          echo $! >/tmp/http.pid
+          cloudflared tunnel --url http://127.0.0.1:8080 --no-autoupdate \
+            --protocol http2 >/tmp/cloudflared.log 2>&1 &
+          echo $! >/tmp/cloudflared.pid
+          url=""
+          for _ in $(seq 1 60); do
+            url=$(grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' /tmp/cloudflared.log | head -1 || true)
+            if [ -n "$url" ]; then break; fi
+            sleep 2
+          done
+          if [ -z "$url" ]; then
+            echo "Cloudflare tunnel did not start" >&2
+            cat /tmp/cloudflared.log >&2
+            exit 1
+          fi
+          echo "CLOUDFLARE_URL=$url" | tee -a "$GITHUB_ENV"
+          {
+            echo "## Cloudflare download"
+            echo ""
+            echo "Direct zip: $url/uke-fedora-$PROFILE.zip"
+            echo ""
+            echo "GitHub release: https://github.com/$GITHUB_REPOSITORY/releases/download/latest-image/uke-fedora-$PROFILE.zip"
+            echo ""
+            echo "Tunnel stays open for $KEEP_ALIVE_MINUTES minutes."
+          } >> "$GITHUB_STEP_SUMMARY"
+          gh release edit latest-image --notes "Cloudflare tunnel: $url/uke-fedora-$PROFILE.zip (open for $KEEP_ALIVE_MINUTES minutes). GitHub asset: https://github.com/$GITHUB_REPOSITORY/releases/download/latest-image/uke-fedora-$PROFILE.zip" || true
+          echo "Tunnel ready: $url/uke-fedora-$PROFILE.zip"
+
+      - name: Keep tunnel alive
+        run: |
+          set -euo pipefail
+          echo "Serving dist/ for $KEEP_ALIVE_MINUTES minutes"
+          sleep "$((KEEP_ALIVE_MINUTES * 60))"
+
+      - name: Stop tunnel
+        if: always()
+        run: |
+          kill "$(cat /tmp/cloudflared.pid)" "$(cat /tmp/http.pid)" 2>/dev/null || true
