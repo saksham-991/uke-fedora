@@ -88,7 +88,7 @@ jobs:
               chmod 755 /usr/local/bin/avbtool
               avbtool --help >/dev/null
               command -v img2simg
-              git config --global --add safe.directory '*'
+              git config --global --add safe.directory "*"
               python3 build/build.py \
                 --profile "$PROFILE" \
                 --senemos-rpm inputs/senemos-uke-linux-kernel-mainline-core-7.3.5-47.fc46.aarch64.rpm \
